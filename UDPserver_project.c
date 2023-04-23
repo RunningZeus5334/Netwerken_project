@@ -6,6 +6,7 @@
 	#include <unistd.h> //for close
 	#include <stdlib.h> //for exit
 	#include <string.h> //for memset
+	#include <time.h> //for srand
 	void OSInit( void )
 	{
 		WSADATA wsaData;
@@ -124,6 +125,7 @@ int initialization()
 
 void execution( int internet_socket )
 {
+srand(time(NULL));
 	//Step 2.1
 	int number_of_bytes_received = 0;
 	char buffer[1000];
@@ -134,11 +136,11 @@ void execution( int internet_socket )
 	{
 		perror( "recvfrom" );
 	}
-	else
+	else            // hier kijken we als we Go ontvangen. Zo ja dan kunnen we random integers gaan sturen.
 	{
 		buffer[number_of_bytes_received] = '\0';
-		printf( "Received : %s\n", buffer );
-			char check[3] = "GO";
+		printf( "Received : %s\n", buffer );      
+			char check[3] = "GO";   
       if(strcmp(buffer,  check) == 0){
       printf("Completed initialisation\n"); 
       }
@@ -148,14 +150,24 @@ void execution( int internet_socket )
       }
     }
 	
-
-	//Step 2.2
+ 
+	//Step 2.2 In this step we send 42 random integers to the udp client. 
 	int number_of_bytes_send = 0;
-	number_of_bytes_send = sendto( internet_socket, "Hello UDP world!", 16, 0, (struct sockaddr *) &client_internet_address, client_internet_address_length );
+	int *random = NULL;
+	random = (int*)calloc (1,sizeof(int));
+	for(int i = 0; i < 42; i++)
+	{
+	*random = rand()%10000; 
+	int random_by_order = htonl(*random);  // hier doen we de network by order transition 
+	
+	number_of_bytes_send = sendto( internet_socket,(const char *)&random_by_order, 1*sizeof(int), 0, (struct sockaddr *) &client_internet_address, client_internet_address_length );
+	}
+	
 	if( number_of_bytes_send == -1 )
 	{
 		perror( "sendto" );
 	}
+
 }
 
 void cleanup( int internet_socket )
