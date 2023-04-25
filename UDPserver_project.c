@@ -149,15 +149,23 @@ srand(time(NULL));
       exit(404);
       }
     }
+    // timeout instellen van 1 seconde
+    DWORD timeout = 3 * 1000;
+    setsockopt(internet_socket, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout, sizeof timeout);    
+    
 	
  
-	//Step 2.2 In this step we send 42 random integers to the udp client. 
+	//Step 2.2 Hier sturen we 42 integers naar de client
 	int number_of_bytes_send = 0;
 	int *random = NULL;
+	int highest_number = 0;
 	random = (int*)calloc (1,sizeof(int));
 	for(int i = 0; i < 42; i++)
 	{
 	*random = rand()%10000; 
+	if(*random > highest_number){
+	highest_number = *random;
+	}
 	int random_by_order = htonl(*random);  // hier doen we de network by order transition 
 	
 	number_of_bytes_send = sendto( internet_socket,(const char *)&random_by_order, 1*sizeof(int), 0, (struct sockaddr *) &client_internet_address, client_internet_address_length );
@@ -168,7 +176,75 @@ srand(time(NULL));
 		perror( "sendto" );
 	}
 
-}
+ // step 2.3 ontvangen van de hoogste integer
+	memset(buffer, 0, sizeof(buffer)); // leegmaken van de buffer 
+ 	number_of_bytes_received = 0;
+	number_of_bytes_received = recvfrom( internet_socket, buffer, ( sizeof buffer ) - 1, 0, (struct sockaddr *) &client_internet_address, &client_internet_address_length );
+  
+	 if( number_of_bytes_received == -1 )
+	{
+	  int error_code = WSAGetLastError();
+    if (error_code == WSAETIMEDOUT) {
+      printf("Timeout\n");          
+        }
+    else{
+      perror( "recvfrom" );
+        }
+	}
+    // ontvangen van int
+		buffer[number_of_bytes_received] = '\0';
+		printf( "Received : %s\n", buffer ); 
+		printf("server highest number = %d\n", highest_number);      
+      
+
+//Step 2.4 weer versturen van 42 random integers
+  number_of_bytes_send = 0;
+  int highest_number2 = 0;
+	for(int i = 0; i < 42; i++)
+	{
+	*random = rand()%10000; 
+	if(*random > highest_number2){
+	highest_number2 = *random;
+	}
+	int random_by_order = htonl(*random);  // hier doen we de network by order transition 
+	
+	number_of_bytes_send = sendto( internet_socket,(const char *)&random_by_order, 1*sizeof(int), 0, (struct sockaddr *) &client_internet_address, client_internet_address_length );
+	}
+	
+	if( number_of_bytes_send == -1 )
+	{
+		perror( "sendto" );
+	}
+// step 2.5 ontvangen van de hoogste integer
+	memset(buffer, 0, sizeof(buffer)); // leegmaken van de buffer 
+ 	number_of_bytes_received = 0;
+	number_of_bytes_received = recvfrom( internet_socket, buffer, ( sizeof buffer ) - 1, 0, (struct sockaddr *) &client_internet_address, &client_internet_address_length );
+  
+	 if( number_of_bytes_received == -1 )
+	{
+	  int error_code = WSAGetLastError();
+    if (error_code == WSAETIMEDOUT) {
+      printf("Timeout\n");          
+        }
+    else{
+      perror( "recvfrom" );
+        }
+	}
+    // ontvangen van int
+		buffer[number_of_bytes_received] = '\0';
+		printf( "Received : %s\n", buffer ); 
+		printf("server highest number = %d\n", highest_number2);      
+
+// step 2.6 sturen van OK en afsluiten
+
+number_of_bytes_send = sendto( internet_socket, "OK", 2, 0, (struct sockaddr *) &client_internet_address, client_internet_address_length );
+	if( number_of_bytes_send == -1 )
+	{
+		perror( "sendto" );
+	}
+  printf("Closing Socket \nGoodbye :)");
+    }
+	
 
 void cleanup( int internet_socket )
 {
